@@ -161,7 +161,7 @@
   <script>
     const SUPABASE_URL = 'https://tpnuniswjrzvvnrngqdt.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbnVuaXN3anJ6dnZucm5ncWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODIyMjcsImV4cCI6MjA5MDI1ODIyN30.Hl_vd-W9z6Ik_dNOufkrdSnkslrOndDHZ6CHKi_PWo4';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const listEl = document.getElementById('list');
     const inputEl = document.getElementById('itemInput');
@@ -197,7 +197,7 @@
     }
 
     async function fetchItems() {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('shopping_items')
         .select('*')
         .order('created_at', { ascending: true });
@@ -209,7 +209,7 @@
     async function addItem() {
       const text = inputEl.value.trim();
       if (!text) return;
-      const { error } = await supabase
+      const { error } = await db
         .from('shopping_items')
         .insert({ text, done: false });
       if (error) { console.error(error); return; }
@@ -219,7 +219,7 @@
     }
 
     async function toggleCheck(id, currentDone) {
-      const { error } = await supabase
+      const { error } = await db
         .from('shopping_items')
         .update({ done: !currentDone })
         .eq('id', id);
@@ -228,7 +228,7 @@
     }
 
     async function deleteItem(id) {
-      const { error } = await supabase
+      const { error } = await db
         .from('shopping_items')
         .delete()
         .eq('id', id);
