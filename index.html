@@ -157,33 +157,34 @@
     <p class="empty" id="empty">리스트가 비어 있습니다</p>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
+    const SUPABASE_URL = 'https://tpnuniswjrzvvnrngqdt.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRwbnVuaXN3anJ6dnZucm5ncWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2ODIyMjcsImV4cCI6MjA5MDI1ODIyN30.Hl_vd-W9z6Ik_dNOufkrdSnkslrOndDHZ6CHKi_PWo4';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     const listEl = document.getElementById('list');
     const inputEl = document.getElementById('itemInput');
     const emptyEl = document.getElementById('empty');
 
-    let items = JSON.parse(localStorage.getItem('shopping-list') || '[]');
-
-    function save() {
-      localStorage.setItem('shopping-list', JSON.stringify(items));
-    }
+    let items = [];
 
     function render() {
       listEl.innerHTML = '';
       emptyEl.style.display = items.length ? 'none' : 'block';
 
-      items.forEach((item, i) => {
+      items.forEach((item) => {
         const li = document.createElement('li');
-        if (item.checked) li.classList.add('checked');
+        if (item.done) li.classList.add('checked');
 
         li.innerHTML = `
           <button class="check-btn" aria-label="체크"></button>
-          <span class="item-name">${escapeHtml(item.name)}</span>
+          <span class="item-name">${escapeHtml(item.text)}</span>
           <button class="delete-btn" aria-label="삭제">&times;</button>
         `;
 
-        li.querySelector('.check-btn').onclick = () => toggleCheck(i);
-        li.querySelector('.delete-btn').onclick = () => deleteItem(i);
+        li.querySelector('.check-btn').onclick = () => toggleCheck(item.id, item.done);
+        li.querySelector('.delete-btn').onclick = () => deleteItem(item.id);
 
         listEl.appendChild(li);
       });
@@ -195,33 +196,51 @@
       return div.innerHTML;
     }
 
-    function addItem() {
-      const name = inputEl.value.trim();
-      if (!name) return;
-      items.push({ name, checked: false });
+    async function fetchItems() {
+      const { data, error } = await supabase
+        .from('shopping_items')
+        .select('*')
+        .order('created_at', { ascending: true });
+      if (error) { console.error(error); return; }
+      items = data;
+      render();
+    }
+
+    async function addItem() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      const { error } = await supabase
+        .from('shopping_items')
+        .insert({ text, done: false });
+      if (error) { console.error(error); return; }
       inputEl.value = '';
       inputEl.focus();
-      save();
-      render();
+      await fetchItems();
     }
 
-    function toggleCheck(index) {
-      items[index].checked = !items[index].checked;
-      save();
-      render();
+    async function toggleCheck(id, currentDone) {
+      const { error } = await supabase
+        .from('shopping_items')
+        .update({ done: !currentDone })
+        .eq('id', id);
+      if (error) { console.error(error); return; }
+      await fetchItems();
     }
 
-    function deleteItem(index) {
-      items.splice(index, 1);
-      save();
-      render();
+    async function deleteItem(id) {
+      const { error } = await supabase
+        .from('shopping_items')
+        .delete()
+        .eq('id', id);
+      if (error) { console.error(error); return; }
+      await fetchItems();
     }
 
     inputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') addItem();
     });
 
-    render();
+    fetchItems();
   </script>
 </body>
 </html>
